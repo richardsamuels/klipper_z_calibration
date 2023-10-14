@@ -68,6 +68,7 @@ class ZCalibrationHelper:
         self.gcode.register_command('CALCULATE_SWITCH_OFFSET',
                                     self.cmd_CALCULATE_SWITCH_OFFSET,
                                     desc=self.cmd_CALCULATE_SWITCH_OFFSET_help)
+        self.switch_zero = config.getfloat('switch_zero', None, minval=0.)
     def get_status(self, eventtime):
         return {'last_query': self.last_state,
                 'last_z_offset': self.last_z_offset}
@@ -418,11 +419,15 @@ class CalibrationState:
                                           split_xy=True,
                                           wiggle=True)
         # probe the probe-switch
-        self.helper.switch_gcode.run_gcode_from_command()
-        # probe the body of the switch
-        switch_zero = self._probe_on_site(self.z_endstop,
-                                          self.helper.switch_site,
-                                          check_probe=True)
+        if self.helper.switch_zero is None:
+            self.helper.switch_gcode.run_gcode_from_command()
+            # probe the body of the switch
+            switch_zero = self._probe_on_site(self.z_endstop,
+                                              self.helper.switch_site,
+                                              check_probe=True)
+        else:
+            self.helper.switch_gcode.run_gcode_from_command()
+
         # probe position on bed
         probe_site = self._add_probe_offset(self.helper.bed_site)
         probe_zero = self._probe_on_site(self.probe.mcu_probe,
